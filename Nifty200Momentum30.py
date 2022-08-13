@@ -5,30 +5,38 @@ from pandas_datareader import data as pdr
 from datetime import datetime
 import time
 
+pd.set_option('display.max_rows', 1000)
+pd.set_option('display.max_columns', 100)
+pd.set_option("display.precision", 2)
+
 # Read Nift200 list
 df = pd.read_csv('ind_nifty200list.csv')
-
-# Drop unnecessary columns
-df.drop(["Series", "ISIN Code", "Industry"], axis = 1, inplace = True)
 
 # Create Yahoo symbol
 df['Yahoo_Symbol'] = df.Symbol + '.NS'
 
+# Drop unnecessary columns
+df.drop(["Symbol", "Series", "ISIN Code", "Industry"], axis = 1, inplace = True)
+
 symbol = df['Yahoo_Symbol'].tolist()
 
 # Dates
-startDate = "2021-08-12"
-endDate = "2022-08-12"
+startDate = "2021-07-01"
+endDate = "2022-07-29"
+
+# symbol = ["ABB.NS"]
 
 # Momentum Ratio 6 and 12
 MR6 = []
 MR12 = []
 
-for k in symbol:
-	print(k)
+dropList = []
+
+for sym in symbol:
+	print(sym)
 	try:
 		# Get data for symbol
-		dfSymbol = pdr.get_data_yahoo(k, startDate, endDate)
+		dfSymbol = pdr.get_data_yahoo(sym, startDate, endDate)
 
 		# Create date, Month and Year column
 		dfSymbol["Date"] = dfSymbol.index
@@ -41,7 +49,7 @@ for k in symbol:
 		monthlyReturns = dfSymbol["Adj Close"].resample('M').ffill().pct_change()
 
 		# days for volatility. (252?)
-		days = dfSymbol.shape[0] - 1
+		days = 250
 
 		monthlyClose = pd.DataFrame()
 
@@ -66,10 +74,13 @@ for k in symbol:
 		momentumRatio12 = priceReturn12 / voltality12
 		MR12.append(momentumRatio12)
 
-		time.sleep(0.25)
+		time.sleep(2)
 	except Exception:
 		print("----------Symbol not found")
+		dropList.append(sym)
 		pass
+
+df = df[~df['Yahoo_Symbol'].isin(dropList)]
 
 df["MR6"] = MR6
 df["MR12"] = MR12
